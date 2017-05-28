@@ -1,0 +1,201 @@
+library(RMySQL)
+library(dbConnect)
+library(ggplot2)
+library(data.table)
+
+
+#connect database
+con = dbConnect(MySQL(), user = "ABC", password = "*******", dbname = "project", host = "localhost")
+dbListTables(con)
+
+#SQL query to select all data from the CDR
+myQuery <- "select * from CDR;"
+df <- dbGetQuery(con,myQuery)
+
+#selecting below listed column only into a new dataframe 'newdf' 
+newdf<- df[c("id","IMSI","IMEI","firstName", "lastName","gender","age", "phoneNo","startDate","endDate","totalCalls","totalCharge")]
+head(newdf)
+
+#creating a new data frame with only specified column
+newdf1 <- newdf[c("Recency","Frequency","Monetary")]
+View(newdf1)
+
+#Create 5 clusters
+set.seed(20)
+k <-kmeans(newdf1, centers=5) 
+k$centers #shows cluster centers
+k$cluster #shows cluster membership number
+#plot the graph
+plot(newdf1,col = k$cluster)
+#creates table
+a<- table(k$cluster)
+View(a)
+
+
+#to arrange customer data according to their cluster membership number
+for(l in 1:5){
+  data_clus_1<-data.frame(ID = newdf$id,firstName = newdf$firstName, lastName = newdf$lastName, gender = newdf$gender, age = newdf$age, phoneNo = newdf$phoneNo,recency = newdf$Recency, frequency = newdf$Frequency, monetary = newdf$Monetary, FREq=k1$cluster==l)
+  head(data_clus_1)
+
+  idVector <- as.vector(data_clus_1[,1])
+  as.integer(idVector)
+  firstNameVector <- as.vector(data_clus_1[,2])
+  lastNameVector <- as.vector(data_clus_1[,3])
+  ageVector <- as.vector(data_clus_1[,5])
+  genderVector <- as.vector(data_clus_1[,4])
+  phoneNoVector <- as.vector(data_clus_1[,6])
+  recencyVector <- as.vector(data_clus_1[,7])
+  frequencyVector <- as.vector(data_clus_1[,8])
+  monetaryVector <- as.vector(data_clus_1[,9])
+  freqVector <- as.vector(data_clus_1[,10])
+  freqVector
+  
+  newId<- vector()
+  newFirstName<- vector()
+  newLastName<- vector()
+  newGender<- vector()
+  newAge<- vector()
+  newPhoneNo<- vector()
+  newRecency<- vector()
+  newFrequency<- vector()
+  newMonetary<- vector()
+  
+  j<- 1
+  for(i in 1:1000)
+  {
+    if(freqVector[c(i)]=="TRUE")
+    {
+      newId[c(j)]<-(idVector[c(i)])
+      newFirstName[c(j)]<-(firstNameVector[c(i)])
+      newLastName[c(j)]<-(lastNameVector[c(i)])
+      newGender[c(j)]<-(genderVector[c(i)])
+      newAge[c(j)]<-(ageVector[c(i)])
+      newPhoneNo[c(j)]<-(phoneNoVector[c(i)])
+      newRecency[c(j)]<-(recencyVector[c(i)])
+      newFrequency[c(j)]<-(frequencyVector[c(i)])
+      newMonetary[c(j)]<-(monetaryVector[c(i)])
+      j<-j+1
+    }
+  }
+  len <-length(newId)
+  
+  clusterId<-as.integer(newId[1:len])
+  clusterFirstName<-newFirstName[1:len]
+  clusterLastName<-newLastName[1:len]
+  clusterGender<-newGender[1:len]
+  clusterAge<-newAge[1:len]
+  clusterPhoneNo<-newPhoneNo[1:len]
+  clusterId <- as.character(clusterId)
+  clusterRecency <- newRecency[1:len]
+  clusterFrequency <- newFrequency[1:len]
+  clusterMonetary <- newMonetary[1:len]
+  
+  cus_cls1<-data.table(clusterId)
+  cus_cls2<-data.table(clusterFirstName)
+  cus_cls3<-data.table(clusterLastName)
+  cus_cls4<-data.table(clusterGender)
+  cus_cls5<-data.table(clusterAge)
+  cus_cls6<-data.table(clusterPhoneNo)
+  cus_cls7<-data.table(clusterRecency)
+  cus_cls8<-data.table(clusterFrequency)
+  cus_cls9<-data.table(clusterMonetary)
+  
+  
+  cus_cls1<-cbind(cus_cls1,cus_cls2, cus_cls3,cus_cls4,cus_cls5,cus_cls6,cus_cls7,cus_cls8,cus_cls9,l)
+  View(cus_cls1)
+  setnames(cus_cls1,c("id","firstName", "lastName","gender", "age", "phoneNo","Recency", "Frequency", "Monetary","cluster"))
+  
+  #writing analysis results to a CSV file 
+  write.table(cus_cls1,"E:/study materials/project/Project documents/analysisResult.csv", row.names=F,na="NA",append=T, quote= FALSE, sep=",", col.names=F)
+}
+
+
+#reading data from CSV file
+rfm <- read.csv("E:/study materials/project/Project documents/analysisResult.csv", header = FALSE)
+View(rfm)
+
+#setting names to each column
+colnames(rfm) <- c("id", "firstName", "lastName","gender", "age","phoneNo", "recency", "frequency", "monetary","clusterNo")
+
+#converting value of data frame into vector form
+recencyValue <- as.vector(rfm[,7])
+clusterMembership <- as.vector(rfm[,10])
+
+#defining variable as vector data type
+recencyCluster <- vector()
+frequencyCluster <- vector()
+monetaryCluster <- vector()
+
+recencyClusterAvg <- vector()
+frequencyClusterAvg <- vector()
+monetaryClusterAvg <- vector()
+
+clusterMembershipVlaue <- vector()
+clusterVectorNo <- vector()
+
+#calculating average value of recency, frequency, and monetary
+for(a in 1:5)
+{
+  
+  clusterDf <- data.frame(recency = rfm$recency, frequency = rfm$frequency, monetary = rfm$monetary, cluster = rfm$clusterNo== a)
+  head(clusterDf)
+  View(clusterDf)
+  
+  recencyVector <- as.vector(clusterDf[,1])
+  frequencyVector <- as.vector(clusterDf[,2])
+  monetaryVector <- as.vector(clusterDf[,3])
+  #  as.integer(idVector)
+  
+  clusterVector <- as.vector(clusterDf[,4])
+  clusterVector
+  
+  #len = length(clusterDf)
+  j<-0
+  for(i in 1:1000)
+  {
+    if(clusterVector[c(i)] == "TRUE")
+    {
+      recencyCluster[c(j)] <- (recencyVector[c(i)])
+      frequencyCluster[c(j)] <- (frequencyVector[c(i)])
+      monetaryCluster[c(j)] <- (monetaryVector[c(i)])
+      clusterVectorNo[c(a)] <- a 
+      j <- j + 1
+    }
+    
+  }
+  
+  #calculating average of recency, frequency and monetary value of each cluster
+  recencyClusterAvg[c(a)] <- mean(recencyCluster)
+  frequencyClusterAvg[c(a)] <- mean(frequencyCluster)
+  monetaryClusterAvg[c(a)] <- mean(monetaryCluster)
+  
+  
+  #inserting vector value into a table
+  avgRecency <- data.table(averageRecency = recencyClusterAvg)
+  avgFrequency <- data.table(averageFrequency = frequencyClusterAvg)
+  avgMonetary <- data.table(averageMonetary = monetaryClusterAvg)
+  clusterTable <- data.table(clusterVectorNo)
+  
+}
+
+avgTable <- cbind(cluster = clusterTable , avgRecency, avgFrequency, avgMonetary)
+View(avgTable)
+
+#calculating the value to determine profitability of a cluster
+value <- vector()
+class(avgTable$averageRecency)
+for(b in 1:5)
+{
+  value[c(b)] <- (avgTable$averageRecency[[b]]*0.2 + avgTable$averageFrequency[[b]]*0.2 + avgTable$averageMonetary[[b]]*0.6)
+}
+valueTable <- data.table(value)
+
+#binding different columns into a single table
+avgTable <- cbind(cluster = clusterTable , avgRecency, avgFrequency, avgMonetary, value = valueTable)
+View(avgTable)
+
+barplot(avgTable$value.value,names.arg = avgTable$cluster.clusterVectorNo,xlab = "Cluster No.",ylab = "Vlaue",col = "green",
+        main = "Profitable Cluster",border = "red")
+
+
+
